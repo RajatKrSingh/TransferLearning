@@ -8,8 +8,8 @@ from keras.layers import Dense
 from keras.layers import Flatten
 from keras.optimizers import SGD
 from keras.utils import to_categorical
-import pickle
 import tensorflow as tf
+from keras.models import load_model
 
 
 # load MNIST input data from file
@@ -102,31 +102,31 @@ def create_cnn_model():
 def train_cnn_models(X_train1, Y_train1, X_train2, Y_train2):
     # Load/Creata ANN for first group of data
     try:
-        ann_model1 = pickle.load(open('ann_model1.sav', 'rb'))
+        ann_model1 = load_model('ann_model1.h5')
     except IOError:
         ann_model1 = create_cnn_model()
         # Add 1 channel field(for Grayscale)
         X_train1 = X_train1.reshape(X_train1.shape[0], 28, 28, 1)
 
         # Perform Training
-        ann_model1.fit(X_train1, Y_train1, epochs=10, batch_size=32, verbose=0)
+        ann_model1.fit(X_train1, Y_train1, epochs=10, batch_size=32, verbose=2)
 
         # Save Model for future use
-        pickle.dump(ann_model1, open('ann_model1.sav', 'wb'))
+        ann_model1.save('ann_model1.h5')
 
     # Load/Creata ANN for second group of data
     try:
-        ann_model2 = pickle.load(open('ann_model2.sav', 'rb'))
+        ann_model2 = load_model('ann_model2.h5')
     except IOError:
         ann_model2 = create_cnn_model()
         # Add 1 channel field(for Grayscale)
         X_train2 = X_train2.reshape(X_train2.shape[0], 28, 28, 1)
 
         # Perform Training
-        ann_model2.fit(X_train2, Y_train2, epochs=10, batch_size=32, verbose=0)
+        ann_model2.fit(X_train2, Y_train2, epochs=10, batch_size=32, verbose=2)
 
         # Save Model for future use
-        pickle.dump(ann_model2, open('ann_model2.sav', 'wb'))
+        ann_model2.save('ann_model2.h5')
 
     return ann_model1, ann_model2
 
@@ -172,6 +172,7 @@ def perform_weight_summation(model1, model2):
         ann_output_model.layers[layer_number].set_weights([layer_weights_1[layer_number]+ layer_weights_2[layer_number],
                                                            layer_biases_1[layer_number]+layer_biases_2[layer_number]])
 
+    print(model1.summary())
     return ann_output_model
 
 # Main Function
@@ -190,7 +191,6 @@ def main():
 
     # Get Accuracy of Consolidated Model on test data
     get_accuracy(ann_output_model,np.append(X_test1,X_test2,axis=0),np.append(Y_test1,Y_test2,axis=0))
-
 
 if __name__ == "__main__":
     main()
