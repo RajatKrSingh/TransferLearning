@@ -1,12 +1,12 @@
 import gzip
 import numpy as np
 import matplotlib.pyplot as plt
-from keras.models import Sequential
-from keras.layers import Conv2D
-from keras.layers import MaxPooling2D
-from keras.layers import Dense
-from keras.layers import Flatten
-from keras.optimizers import SGD
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D
+from tensorflow.keras.layers import MaxPooling2D
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Flatten
+from tensorflow.keras.optimizers import SGD
 from keras.utils import to_categorical
 import tensorflow as tf
 from keras.models import load_model
@@ -172,7 +172,6 @@ def perform_weight_summation(model1, model2):
         ann_output_model.layers[layer_number].set_weights([layer_weights_1[layer_number]+ layer_weights_2[layer_number],
                                                            layer_biases_1[layer_number]+layer_biases_2[layer_number]])
 
-    print(model1.summary())
     return ann_output_model
 
 # Main Function
