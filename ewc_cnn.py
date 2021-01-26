@@ -56,7 +56,7 @@ def get_fisherinformation(model,x_batch,y_batch):
         is_first = True
 
     for layer_nodes in range(6):   #Hardcoded for time being
-        fisher_information[layer_nodes] = tf.add(fisher_information[layer_nodes],d2E_dW2[layer_nodes])
+        fisher_information[layer_nodes] = tf.add(tf.abs(fisher_information[layer_nodes]),tf.abs(d2E_dW2[layer_nodes]))
 
 
 # Compute Hessians from model
@@ -112,7 +112,7 @@ def training_models_fisher_computation(X_train1, Y_train1, X_train2, Y_train2, X
 
     # Perform Training to get Fisher Information
     fisher_callback = CustomCallBack()
-    ann_model1.fit(X_train1, Y_train1, epochs=10, batch_size=32, verbose=1, callbacks=[fisher_callback])
+    ann_model1.fit(X_train1, Y_train1, epochs=1, batch_size=32, verbose=1, callbacks=[fisher_callback])
 
     # Save Model for future use
     ann_model1.save('ann_ewc_model1.h5')
@@ -136,7 +136,7 @@ def training_models_fisher_computation(X_train1, Y_train1, X_train2, Y_train2, X
 
     # Perform Training to get Fisher Information
     fisher_callback = CustomCallBack()
-    ann_model2.fit(X_train2, Y_train2, epochs=10, batch_size=32, verbose=1, callbacks=[fisher_callback])
+    ann_model2.fit(X_train2, Y_train2, epochs=1, batch_size=32, verbose=1, callbacks=[fisher_callback])
 
     # Save Model for future use
     ann_model2.save('ann_ewc_model2.h5')
@@ -218,17 +218,6 @@ def perform_symmetric_ewc():
     layer_resultant_biases = {}
 
     for layer_counter in range(len(layer_weights_1)):
-        norm = np.linalg.norm(fisher_layer_weights_1[layer_counter])
-        fisher_layer_weights_1[layer_counter] = fisher_layer_weights_1[layer_counter]/norm
-
-        norm = np.linalg.norm(fisher_layer_biases_1[layer_counter])
-        fisher_layer_biases_1[layer_counter] = fisher_layer_biases_1[layer_counter]/norm
-
-        norm = np.linalg.norm(fisher_layer_weights_2[layer_counter])
-        fisher_layer_weights_2[layer_counter] = fisher_layer_weights_2[layer_counter]/norm
-
-        norm = np.linalg.norm(fisher_layer_biases_2[layer_counter])
-        fisher_layer_biases_2[layer_counter] = fisher_layer_biases_2[layer_counter]/norm
 
         layer_resultant_weights[layer_counter] = np.divide(np.add(np.multiply(layer_weights_1[layer_counter],fisher_layer_weights_1[layer_counter]),
         np.multiply(layer_weights_2[layer_counter],fisher_layer_weights_2[layer_counter])), np.add(fisher_layer_weights_1[layer_counter],fisher_layer_weights_2[layer_counter]))
@@ -236,6 +225,9 @@ def perform_symmetric_ewc():
         layer_resultant_biases[layer_counter] = np.divide(np.add(np.multiply(layer_biases_1[layer_counter],fisher_layer_biases_1[layer_counter]),
         np.multiply(layer_biases_2[layer_counter],fisher_layer_biases_2[layer_counter])), np.add(fisher_layer_biases_1[layer_counter],
                                                                                                  fisher_layer_biases_2[layer_counter]))
+
+        layer_resultant_weights[layer_counter] = np.nan_to_num(layer_resultant_weights[layer_counter])
+        layer_resultant_biases[layer_counter] = np.nan_to_num(layer_resultant_biases[layer_counter])
 
     # Assign weights to new model
     ann_output_model = create_cnn_model()
@@ -259,16 +251,18 @@ def main():
     X_train1, Y_train1, X_train2, Y_train2, X_test1, Y_test1, X_test2, Y_test2 = ws.split_train_test_data(X_train, Y_train, X_test, Y_test)
 
     # Perform Training and saving of Fisher Information
-    training_models_fisher_computation(X_train1, Y_train1, X_train2, Y_train2, X_test1, Y_test1, X_test2, Y_test2)
+    #training_models_fisher_computation(X_train1, Y_train1, X_train2, Y_train2, X_test1, Y_test1, X_test2, Y_test2)
 
     # Perform Elastic Weight Consolidation for Result ANN
     ann_output_model = perform_symmetric_ewc()
 
+    ann_model1 = load_model('ann_ewc_model1.h5', custom_objects={'SequentialCustom': SequentialCustom})
+    ann_model2 = load_model('ann_ewc_model2.h5', custom_objects={'SequentialCustom': SequentialCustom})
+    ann_output_model2 = ws.perform_weight_summation(ann_model1,ann_model2)
 
-    # Get Accuracy of Consolidated Model on test data
-    ws.get_accuracy(ann_output_model,X_test1,Y_test1)
-    ws.get_accuracy(ann_output_model,X_test2,Y_test2)
+    # Get Accuracy of Consolidated Model on test data and Compare with WS technique
     ws.get_accuracy(ann_output_model,np.append(X_test1,X_test2,axis=0),np.append(Y_test1,Y_test2,axis=0))
+    ws.get_accuracy(ann_output_model2,np.append(X_test1,X_test2,axis=0),np.append(Y_test1,Y_test2,axis=0))
 
 
 if __name__ == "__main__":
