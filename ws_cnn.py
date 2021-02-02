@@ -11,7 +11,21 @@ from keras.utils import to_categorical
 import tensorflow as tf
 from keras.models import load_model
 import pickle
+import h5py
 
+# Load USPS dataset
+def load_USPS():
+    with h5py.File('usps.h5', 'r') as hf:
+        train = hf.get('train')
+        X_tr = train.get('data')[:]
+        y_tr = train.get('target')[:]
+        test = hf.get('test')
+        X_te = test.get('data')[:]
+        y_te = test.get('target')[:]
+
+    X_tr = X_tr.reshape((X_tr.shape[0],16,16))
+    X_te = X_te.reshape((X_te.shape[0],16,16))
+    return X_tr,y_tr,X_te,y_te
 
 # load CIFAR-10 Dataset
 def load_cifar10(file):
@@ -117,12 +131,43 @@ def split_train_test_data(X_train, Y_train, X_test, Y_test):
 
     return X_train1, Y_train1, X_train2, Y_train2, X_test1, Y_test1, X_test2, Y_test2
 
+# Create Neural Networks from keras package
+# Output: model - Initialized ANN with specified architecture
+def create_cnn_model_c10():
+    model = Sequential()
+    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', input_shape=(32, 32, 3)))
+    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform'))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_uniform'))
+    model.add(Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_uniform'))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Flatten())
+    model.add(Dense(100, activation='relu', kernel_initializer='he_uniform'))
+    model.add(Dense(10, activation='softmax'))
+    # compile model
+    opt = SGD(lr=0.01, momentum=0.9)
+    model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+# Create Neural Networks from keras package
+# Output: model - Initialized ANN with specified architecture
+def create_cnn_model_usps():
+    model = Sequential()
+    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', input_shape=(16, 16, 1))) #Change to (28,28,1) for MNIST
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Flatten())
+    model.add(Dense(100, activation='relu', kernel_initializer='he_uniform'))
+    model.add(Dense(10, activation='softmax'))
+    # compile model
+    opt = SGD(lr=0.01, momentum=0.9)
+    model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
 
 # Create Neural Networks from keras package
 # Output: model - Initialized ANN with specified architecture
 def create_cnn_model():
     model = Sequential()
-    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', input_shape=(32, 32, 3))) #Change to (28,28,1) for MNIST
+    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', input_shape=(28, 28, 1))) #Change to (28,28,1) for MNIST
     model.add(MaxPooling2D((2, 2)))
     model.add(Flatten())
     model.add(Dense(100, activation='relu', kernel_initializer='he_uniform'))
@@ -140,31 +185,31 @@ def create_cnn_model():
 def train_cnn_models(X_train1, Y_train1, X_train2, Y_train2):
     # Load/Creata ANN for first group of data
     try:
-        ann_model1 = load_model('ann_model1_c10.h5')
+        ann_model1 = load_model('ann_model1_usps.h5')
     except IOError:
-        ann_model1 = create_cnn_model()
+        ann_model1 = create_cnn_model_usps()
         # Add 1 channel field(for Grayscale)
-        # X_train1 = X_train1.reshape(X_train1.shape[0], 28, 28, 1) --Uncomment for MNIST
-
+        X_train1 = X_train1.reshape(X_train1.shape[0], 16, 16, 1)
+        print(X_train1.shape)
         # Perform Training
-        ann_model1.fit(X_train1, Y_train1, epochs=50, batch_size=32, verbose=2)
+        ann_model1.fit(X_train1, Y_train1, epochs=100, batch_size=32, verbose=2)
 
         # Save Model for future use
-        ann_model1.save('ann_model1_c10.h5')
+        ann_model1.save('ann_model1_usps.h5')
 
     # Load/Creata ANN for second group of data
     try:
-        ann_model2 = load_model('ann_model2_c10.h5')
+        ann_model2 = load_model('ann_model2_usps.h5')
     except IOError:
-        ann_model2 = create_cnn_model()
+        ann_model2 = create_cnn_model_usps()
         # Add 1 channel field(for Grayscale)
-        # X_train2 = X_train2.reshape(X_train2.shape[0], 28, 28, 1) -- Uncomment for MNIST
+        X_train2 = X_train2.reshape(X_train2.shape[0], 16, 16, 1)
 
         # Perform Training
-        ann_model2.fit(X_train2, Y_train2, epochs=20, batch_size=32, verbose=2)
+        ann_model2.fit(X_train2, Y_train2, epochs=100, batch_size=32, verbose=2)
 
         # Save Model for future use
-        ann_model2.save('ann_model2_c10.h5')
+        ann_model2.save('ann_model2_usps.h5')
 
     return ann_model1, ann_model2
 
@@ -175,10 +220,41 @@ def train_cnn_models(X_train1, Y_train1, X_train2, Y_train2):
 #         Y_test - Testing Data Output Label
 def get_accuracy(model, X_test, Y_test):
     # Reshape Training data for grayscale channel
-    # X_test = X_test.reshape(X_test.shape[0], 28, 28, 1) --Uncomment for MNIST
+    X_test = X_test.reshape(X_test.shape[0], 16, 16, 1)
     _, acc = model.evaluate(X_test, Y_test, verbose=0)
     print('Accuracy of model> %.3f' % (acc * 100.0))
 
+# Perform knowledge transfer using Weight Summation Methodology
+# Inputs:  model1 - ANN trained on classes c1
+#          model2 - ANN trained on classes c2
+# Output:  ann_output_model - Consolidated ANN using Weight Summation Technique on classes (c1 U c2)
+def perform_weight_summation_c10(model1, model2):
+    # Get MetaData for Model1
+    layer_weights_1 = {}
+    layer_biases_1 = {}
+    for layer_number in range(len(model1.layers)):
+        if layer_number == 2 or layer_number == 5 or layer_number == 6:  # Skip weight collection for Pooling and Flatten Layers
+            continue
+        layer_weights_1[layer_number] = model1.layers[layer_number].get_weights()[0]
+        layer_biases_1[layer_number] = model1.layers[layer_number].get_weights()[1]
+
+    # Get MetaData for Model2
+    layer_weights_2 = {}
+    layer_biases_2 = {}
+    for layer_number in range(len(model2.layers)):
+        if layer_number == 2 or layer_number == 5 or layer_number == 6:  # Skip weight collection for Pooling and Flatten Layers
+            continue
+        layer_weights_2[layer_number] = model2.layers[layer_number].get_weights()[0]
+        layer_biases_2[layer_number] = model2.layers[layer_number].get_weights()[1]
+
+    ann_output_model = create_cnn_model_c10()
+    for layer_number in range(len(ann_output_model.layers)):
+        if layer_number == 2 or layer_number == 5 or layer_number == 6: # Skip weight aggregation for Pooling and Flatten Layers
+            continue
+        ann_output_model.layers[layer_number].set_weights([(layer_weights_1[layer_number]+ layer_weights_2[layer_number])/2,
+                                                           (layer_biases_1[layer_number]+layer_biases_2[layer_number])/2])
+
+    return ann_output_model
 
 # Perform knowledge transfer using Weight Summation Methodology
 # Inputs:  model1 - ANN trained on classes c1
@@ -203,12 +279,12 @@ def perform_weight_summation(model1, model2):
         layer_weights_2[layer_number] = model2.layers[layer_number].get_weights()[0]
         layer_biases_2[layer_number] = model2.layers[layer_number].get_weights()[1]
 
-    ann_output_model = create_cnn_model()
+    ann_output_model = create_cnn_model_usps()
     for layer_number in range(len(ann_output_model.layers)):
         if layer_number == 1 or layer_number == 2:  # Skip weight aggregation for Pooling and Flatten Layers
             continue
-        ann_output_model.layers[layer_number].set_weights([(layer_weights_1[layer_number]+ layer_weights_2[layer_number])/2,
-                                                           (layer_biases_1[layer_number]+layer_biases_2[layer_number])/2])
+        ann_output_model.layers[layer_number].set_weights([(layer_weights_1[layer_number]+ layer_weights_2[layer_number]),
+                                                           (layer_biases_1[layer_number]+layer_biases_2[layer_number])])
 
     return ann_output_model
 
@@ -248,7 +324,6 @@ def get_cifar10_training_testdata():
     X_test,Y_test = load_cifar10('CIFAR10_Dataset/cifar-10-python/cifar-10-batches-py/test_batch')
     X_test = X_test.astype('float32')/255.0
 
-
     return X_training,Y_training,X_test,Y_test
 
 def perform_cifar10_operations():
@@ -256,9 +331,27 @@ def perform_cifar10_operations():
     # Get training data
     X_train,Y_train,X_test,Y_test = get_cifar10_training_testdata()
 
-    print(X_train.shape)
     # Split Training Data
     X_train1, Y_train1, X_train2, Y_train2, X_test1, Y_test1, X_test2, Y_test2 = split_train_test_data_c10(X_train,Y_train,X_test,Y_test)
+
+    # Get Trained Models for network1 and network2
+    ann_model1, ann_model2 = train_cnn_models(X_train1, Y_train1, X_train2, Y_train2)
+
+    # Build Consolidated ANN using Weight Summation Technique
+    ann_output_model = perform_weight_summation_c10(ann_model1, ann_model2)
+
+    # Get Accuracy of Consolidated Model on test data
+    get_accuracy(ann_model1,X_test1,Y_test1)
+    get_accuracy(ann_model2,X_test2,Y_test2)
+    get_accuracy(ann_output_model,X_train1,Y_train1)
+    get_accuracy(ann_output_model,X_train2,Y_train2)
+    get_accuracy(ann_output_model,np.append(X_test1,X_test2,axis=0),np.append(Y_test1,Y_test2,axis=0))
+
+def perform_usps_operations():
+    X_train,Y_train,X_test,Y_test = load_USPS()
+
+    # Split Training Data and Test data for Different Data Models
+    X_train1, Y_train1, X_train2, Y_train2, X_test1, Y_test1, X_test2, Y_test2 = split_train_test_data_c10(X_train, Y_train, X_test, Y_test)
 
     # Get Trained Models for network1 and network2
     ann_model1, ann_model2 = train_cnn_models(X_train1, Y_train1, X_train2, Y_train2)
@@ -268,13 +361,18 @@ def perform_cifar10_operations():
 
     # Get Accuracy of Consolidated Model on test data
     get_accuracy(ann_output_model,np.append(X_test1,X_test2,axis=0),np.append(Y_test1,Y_test2,axis=0))
+    get_accuracy(ann_output_model,np.append(X_train1,X_train2,axis=0),np.append(Y_train1,Y_train2,axis=0))
+
+
 
 # Main Function
 def main():
 
-    perform_cifar10_operations()
+    #perform_cifar10_operations()
 
     #perform_mnist_operations()
+
+    perform_usps_operations()
 
 
 if __name__ == "__main__":
