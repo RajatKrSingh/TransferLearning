@@ -10,9 +10,7 @@ Deep learning techniques extract and disentangle higher level factors base on th
 ![equation](http://www.sciweavers.org/tex2img.php?eq=W%5E%7B1%7D_%7Bf%7D%20%3D%20%20%5Csum_%7Bm%3D1%7D%5EM%20W%5E%7Bm%7D_%7B1%7D&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0) <br>
 Assuming statistically independent weights W<sub>i</sub><sup>m</sup> of M neural networks and an equal probability of excitatory and inhibitory weights,
 combination of the weights does not change the strength of the presynaptic signal on average as shown by the equation below.<br>
-
-![equation](http://www.sciweavers.org/tex2img.php?eq=sgn%28w%5E%7Bf%7Df%20%3D%20w%5E%7B1%7Df%20%2B%20w%5E%7B2%7Df%20%2B%20....%29%20%3D%20sgn%28w%5E%7B1%7Df%29&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0)
-  
+![equation](https://bit.ly/3ngwKpZ)
 - Elastic Weight Consolidation - This method was proposed to prevent catastrophic forgetting based on an approximation of the error surface of a trained neural network by a paraboloid in multidimensional space of weights. Fischer Information is used to approximate the loss function which is simplified to <br>
 ![equation](https://bit.ly/3HUzEKf)
 
