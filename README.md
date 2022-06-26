@@ -20,7 +20,7 @@ combination of the weights does not change the strength of the presynaptic signa
 
 ### Architecture / Implementation Details
 <p align="center">
-<img src="https://i.imgur.com/p1C3LFc.png" width="200">
+<img src="https://i.imgur.com/p1C3LFc.png" width="300">
 </p>
 <br>
 <ul>
